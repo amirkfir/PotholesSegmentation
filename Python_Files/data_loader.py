@@ -16,27 +16,30 @@ import xml.etree.ElementTree as ET
 from torchvision.transforms import v2 as T
 
 
-
-def prepare_labels(xml_path, out_path,max_objects):
+def prepare_labels(xml_path, out_path, max_objects):
     for filename in os.listdir(xml_path):
         if not filename.endswith('.xml'): continue
         fullname = os.path.join(xml_path, filename)
         tree = ET.parse(fullname)
-        root  = tree.getroot()
+        root = tree.getroot()
         objects = []
         for child in root:
             if child.tag == 'object':
                 object = np.array([int(child[4][0].text),
-                         int(child[4][1].text),
-                         int(child[4][2].text),
-                         int(child[4][3].text)])
+                                   int(child[4][1].text),
+                                   int(child[4][2].text),
+                                   int(child[4][3].text)])
                 objects.append(object)
             elif child.tag == 'size':
-                pic_size = (int(child[0].text),int(child[1].text))
+                pic_size = (int(child[0].text), int(child[1].text))
         out = np.zeros((max_objects, 4))
         out[0:len(objects)] = objects
-        with open(out_path +"/"+ filename[:-4] + ".pkl", 'wb') as fp:
-            pickle.dump((torch.Tensor(out),len(objects),pic_size), fp)
+
+        out_directory = os.path.dirname(out_path + "/" + filename[:-4] + ".pkl")
+        os.makedirs(out_directory, exist_ok=True)
+
+        with open(out_path + "/" + filename[:-4] + ".pkl", 'wb') as fp:
+            pickle.dump((torch.Tensor(out), len(objects), pic_size), fp)
     print(max_objects)
 
 
@@ -63,16 +66,20 @@ class Potholes(torch.utils.data.Dataset):
         with open(label_path, 'rb') as fp:
             label = pickle.load(fp)
 
-        if self.target_only_transform is not None:
-            label = self.target_only_transform(label)
+            if self.target_only_transform is not None:
+                label = self.target_only_transform(label)
 
-        if self.image_only_transform is not None:
-            image = self.image_only_transform(image)
+            if self.image_only_transform is not None:
+                image = self.image_only_transform(image)
 
-        # image = T.ToTensor()(image)
-        label = T.ToTensor()(label)
+            #  label = T.Compose([
+            #      T.ToImage(),
+            #      T.ToDtype(torch.float32, scale=True)
+            #  ])(label)
 
-        return image, label
+            return image, label
+
+
 # def collect(batch):
 #     images = []
 #     targets = []
@@ -99,21 +106,27 @@ def load_data_paths(data_path):
     train_objects_paths.sort(key=lambda x: os.path.basename(x).split('.')[0])
     test_image_paths.sort(key=lambda x: os.path.basename(x).split('_')[0])
     test_objects_paths.sort(key=lambda x: os.path.basename(x).split('.')[0])
-    return train_image_paths, train_objects_paths ,test_image_paths,test_objects_paths
+    return train_image_paths, train_objects_paths, test_image_paths, test_objects_paths
+
 
 class BBox_Resize(torch.nn.Module):
-    def __init__(self,dest_shape):
+    def __init__(self, dest_shape):
         super().__init__()
         self.dest_shape = dest_shape
+
     def forward(self, target):
-        # Do some transformations
-        boxes,t,org_shape = target
-        ratio = torch.Tensor([self.dest_shape[0]/org_shape[0],
-                              self.dest_shape[1]/org_shape[1],
-                              self.dest_shape[0]/org_shape[0],
-                              self.dest_shape[1]/org_shape[1]])
+        boxes, t, org_shape = target
+        # Compute the scaling ratios
+        ratio = torch.tensor([
+            self.dest_shape[0] / org_shape[0],
+            self.dest_shape[1] / org_shape[1],
+            self.dest_shape[0] / org_shape[0],
+            self.dest_shape[1] / org_shape[1]
+        ])
+        # Apply the scaling ratios to the bounding boxes
         boxes = torch.round(boxes * ratio.unsqueeze(0))
-        return (boxes,t)
+        return (boxes, t)
+
 
 def load_and_transform_dataset(val_size, batch_size, image_resize,
                                data_path='../data/Potholes/'):
@@ -136,12 +149,10 @@ def load_and_transform_dataset(val_size, batch_size, image_resize,
     #     objects_path = os.path.join(data_root, "objects_files", f"{file[-4]}.pkl")
     #     image_mask_pairs.append((image_path, objects_path))
 
-    trainable_image_paths, trainable_objects_paths ,test_image_paths,test_objects_paths = load_data_paths(data_path)
-
+    trainable_image_paths, trainable_objects_paths, test_image_paths, test_objects_paths = load_data_paths(data_path)
 
     train_image_paths, val_image_paths, train_objects_paths, val_objects_paths = train_test_split(
         trainable_image_paths, trainable_objects_paths, test_size=val_size, random_state=random_state)
-
 
     # avg_mean, std_avg = calculate_normalization_params(train_img_paths)
 
@@ -157,28 +168,21 @@ def load_and_transform_dataset(val_size, batch_size, image_resize,
     # ])
     #
     train_targets_transform = T.Compose([
-        BBox_Resize(target_size),    ])
+        BBox_Resize(target_size), ])
     test_targets_transform = T.Compose([
-        BBox_Resize(target_size),    ])
+        BBox_Resize(target_size), ])
     #
     # # Image-only transforms
+    # In your load_and_transform_dataset function
     train_image_only_transform = T.Compose([
-    #     T.ColorJitter(
-    #         brightness=color_jitter_brightness,
-    #         contrast=color_jitter_contrast,
-    #         saturation=color_jitter_saturation,
-    #         hue=color_jitter_hue
-    #     ),
-    #     T.GaussianBlur(gaussian_blur_kernel_size),
-        T.ToTensor(),
-    #     GaussianNoise(mean=0.0, std=0.1),
-    #     T.Normalize(mean=avg_mean, std=std_avg),
+        T.ToImage(),
+        T.ToDtype(torch.float32, scale=True),
         T.Resize(target_size),
     ])
-    #
+
     test_image_only_transform = T.Compose([
-        T.ToTensor(),
-    #     T.Normalize(mean=avg_mean, std=std_avg),
+        T.ToImage(),
+        T.ToDtype(torch.float32, scale=True),
         T.Resize(target_size),
     ])
 
@@ -186,7 +190,6 @@ def load_and_transform_dataset(val_size, batch_size, image_resize,
     # train_image_only_transform = None
     test_shared_transform = None
     # test_image_only_transform = None
-
 
     trainset = Potholes(
         target_only_transform=train_targets_transform,
@@ -218,10 +221,11 @@ def load_and_transform_dataset(val_size, batch_size, image_resize,
 
     return trainset, valset, testset, train_loader, val_loader, test_loader
 
+
 data_root = '../data/Potholes/'
 
-#prepare label dataset
-prepare_labels(data_root + "annotated-images", data_root+ "objects_files",19)
+# prepare label dataset
+prepare_labels(data_root + "annotated-images", data_root + "objects_files", 19)
 
 # with open("/home/amir/Documents/Autonomous Systems Master/DLICV/object_detection/poster1/data/Potholes/Potholes/objects_files/img-399.pkl",'rb') as file:
 #     a = pickle.load(file)
@@ -229,18 +233,4 @@ prepare_labels(data_root + "annotated-images", data_root+ "objects_files",19)
 ##read file splitting:
 
 
-
 ## prepare dataloader
-
-
-
-
-
-
-
-
-
-
-
-
-
