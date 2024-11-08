@@ -7,6 +7,8 @@ from data_loader import *
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from visualize import visualize_boxes, visualize_proposals
+from generate_object_proposals import get_batch_selective_search_regions
 
 from torchsummary import summary
 import torch.optim as optim
@@ -26,27 +28,11 @@ trainset, valset, testset, train_loader, val_loader, test_loader = load_and_tran
 # test loader
 images, (objects, num_objects) = next(iter(train_loader))
 
-fig, axs = plt.subplots(2, 2, figsize=(15, 15))
-axs = axs.flatten()
+visualize_boxes(images, objects, num_objects)
 
-for i in range(4):
-    ax = axs[i]
-    ax.imshow(np.swapaxes(np.swapaxes(images[i], 0, 2), 0, 1))
+batch_rects = get_batch_selective_search_regions(images)
 
-    for j in range(num_objects[i]):
-        xmin = objects[i][j][0]
-        ymin = objects[i][j][1]
-        xmax = objects[i][j][2]
-        ymax = objects[i][j][3]
-        width = xmax - xmin
-        height = ymax - ymin
-        rect = patches.Rectangle(
-            (xmin, ymin), width, height, linewidth=8, edgecolor='yellow', facecolor='none'
-        )
-        ax.add_patch(rect)
-
-plt.tight_layout()
-plt.show()
+visualize_proposals(images, batch_rects, num_proposals=50)
 
 ##load/create model
 
