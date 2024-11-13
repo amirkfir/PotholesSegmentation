@@ -31,7 +31,7 @@ images, (objects, num_objects) = next(iter(train_loader))
 visualize_boxes(images, objects, num_objects)
 
 batch_rects = get_batch_selective_search_regions(images)
-visualize_proposals(images, batch_rects, num_proposals=50)
+# visualize_proposals(images, batch_rects, num_proposals=50)
 
 
 # run train loop
