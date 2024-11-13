@@ -43,6 +43,7 @@ def prepare_labels(xml_path, out_path, max_objects):
     print(max_objects)
 
 
+
 class Potholes(torch.utils.data.Dataset):
     def __init__(self, target_only_transform, image_only_transform, image_paths, label_paths):
         'Initialization'
@@ -129,44 +130,17 @@ class BBox_Resize(torch.nn.Module):
 
 
 def load_and_transform_dataset(val_size, batch_size, image_resize,
-                               data_path='../data/Potholes/'):
-    # rand_rot_angle = 10
-    # rand_crop_size = 350
-    # flip_probability = 0.7
-    # gaussian_blur_kernel_size = 5
-    # color_jitter_brightness = 0.2
-    # color_jitter_contrast = 0.2
-    # color_jitter_saturation = 0.2
-    # color_jitter_hue = 0.05
+                               data_path='../data/Potholes/', shuffle = True):
+
     target_size = (image_resize, image_resize)
 
     random_state = 42
 
-    image_mask_pairs = []
-
-    # for file in train_files:
-    #     image_path = os.path.join(data_path, "annotated-images", f"{file[-4]}.jpg")
-    #     objects_path = os.path.join(data_root, "objects_files", f"{file[-4]}.pkl")
-    #     image_mask_pairs.append((image_path, objects_path))
-
     trainable_image_paths, trainable_objects_paths, test_image_paths, test_objects_paths = load_data_paths(data_path)
 
     train_image_paths, val_image_paths, train_objects_paths, val_objects_paths = train_test_split(
-        trainable_image_paths, trainable_objects_paths, test_size=val_size, random_state=random_state)
+        trainable_image_paths, trainable_objects_paths, test_size=val_size, random_state=random_state, shuffle=shuffle)
 
-    # avg_mean, std_avg = calculate_normalization_params(train_img_paths)
-
-    # print(f"avg_mean: {avg_mean}")
-    # print(f"std_avg: {std_avg}")
-
-    # shared transforms are applied both to labels and images
-    # train_shared_transform = T.Compose([
-    #     T.RandomHorizontalFlip(p=flip_probability),
-    #     T.RandomVerticalFlip(p=flip_probability),
-    #     T.RandomRotation(rand_rot_angle),
-    #     T.Resize(target_size),
-    # ])
-    #
     train_targets_transform = T.Compose([
         BBox_Resize(target_size), ])
     test_targets_transform = T.Compose([
@@ -186,10 +160,6 @@ def load_and_transform_dataset(val_size, batch_size, image_resize,
         T.Resize(target_size),
     ])
 
-    train_shared_transform = None
-    # train_image_only_transform = None
-    test_shared_transform = None
-    # test_image_only_transform = None
 
     trainset = Potholes(
         target_only_transform=train_targets_transform,
@@ -221,6 +191,11 @@ def load_and_transform_dataset(val_size, batch_size, image_resize,
 
     return trainset, valset, testset, train_loader, val_loader, test_loader
 
+
+
+
+
+    return
 
 data_root = '../data/Potholes/'
 
