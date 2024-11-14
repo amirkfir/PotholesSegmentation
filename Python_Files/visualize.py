@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 import cv2
+from torchvision.utils import make_grid
 
 def visualize_boxes(images, objects, num_objects):
     fig, axs = plt.subplots(2, 2, figsize=(15, 15))
@@ -45,3 +46,42 @@ def visualize_proposals(images, batch_rects, num_proposals=50, max_images=10):
         n+=1
         if n >= max_images:
             return
+
+def imshow_batch(loader, batch_size=8):
+    classes = ["Pothole", "Not Pothole"]
+
+    dataiter = iter(loader)
+    try:
+        images, labels = next(dataiter)
+    except StopIteration:
+        print("The DataLoader is empty.")
+        return
+
+    images = images[:batch_size]
+    labels = labels[:batch_size]
+
+    # Denormalize images
+    #mean = [0.485, 0.456, 0.406]
+    #std = [0.229, 0.224, 0.225]
+    #images = denormalize(images.clone(), mean, std)
+
+    np_images = images.numpy().transpose((0, 2, 3, 1))
+    np_images = np.clip(np_images, 0, 1)
+
+    cols = 4
+    rows = (batch_size + cols - 1) // cols
+
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 3, rows * 3))
+    axes = axes.flatten()
+
+    for idx in range(batch_size):
+        ax = axes[idx]
+        ax.imshow(np_images[idx])
+        ax.set_title(f"{classes[labels[idx]]}")
+        ax.axis('off')
+
+    for idx in range(batch_size, len(axes)):
+        axes[idx].axis('off')
+
+    plt.tight_layout()
+    plt.show()

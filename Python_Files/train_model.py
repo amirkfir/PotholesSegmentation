@@ -7,8 +7,9 @@ from data_loader import *
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from visualize import visualize_boxes, visualize_proposals
-from generate_object_proposals import get_batch_selective_search_regions, evaluate_batch_object_proposals
+from visualize import *
+from generate_object_proposals import get_batch_selective_search_regions, evaluate_batch_object_proposals, prepare_proposals_images
+from object_data_loader import load_and_transform_objects
 
 from torchsummary import summary
 import torch.optim as optim
@@ -32,6 +33,13 @@ visualize_boxes(images, objects, num_objects)
 
 batch_rects = get_batch_selective_search_regions(images)
 visualize_proposals(images, batch_rects, num_proposals=50)
+prepare_proposals_images()
 
+object_trainset, object_testset, object_train_loader, object_test_loader = load_and_transform_objects(
+                                                                                              batch_size=batch_size,
+                                                                                              image_resize=image_resize)
 
-# run train loop
+# Display a batch of training images
+imshow_batch(object_train_loader, image_resize, batch_size=16)
+
+# run image classification on objects

@@ -336,4 +336,3 @@ def prepare_proposals_images(data_path='../data/Potholes/', out_path = '../data/
                     raise IOError(f"Failed to write image file.")
             except Exception as e:
                 continue
-prepare_proposals_images()
