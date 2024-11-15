@@ -1,26 +1,22 @@
-import torch
-# from menuinst.utils import data_path
-from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
-# from DataLoaderFunc import *
-from data_loader import *
-import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from visualize import *
-from generate_object_proposals import get_batch_selective_search_regions, evaluate_batch_object_proposals, prepare_proposals_images
+from generate_object_proposals import get_batch_selective_search_regions, evaluate_batch_object_proposals, prepare_proposals_images, prepare_proposals_database, generate_and_save_proposals
 from object_data_loader import load_and_transform_objects
+from torchsummary import summary
 from model import Pothole_RCNN
 import torch.nn as nn
 import torchvision.models as models
+import torch
 
 def main():
     ##general parameters
     data_path = '../data/Potholes/'
-    image_resize = 512
+    image_resize = 128
     batch_size = 50
-    #IOU_th = 0.7
-    ##load data
+    IOU_th = 0.7
+
+    # load data
     #trainset, valset, testset, train_loader, val_loader, test_loader = load_and_transform_dataset(val_size=0.05,
     #                                                                                              batch_size=batch_size,
     #                                                                                              image_resize=image_resize,
@@ -28,28 +24,28 @@ def main():
 
     # test loader
     #images, (objects, num_objects) = next(iter(train_loader))
-
     #visualize_boxes(images, objects, num_objects)
 
     #batch_rects = get_batch_selective_search_regions(images)
     #visualize_proposals(images, batch_rects, num_proposals=50)
+    #prepare_proposals_database()
     #prepare_proposals_images()
+    # this takes a long time -> only re-run if changed
+    #generate_and_save_proposals()
 
     object_trainset, object_testset, object_train_loader, object_test_loader = load_and_transform_objects(
                                                                                                   batch_size=batch_size,
                                                                                                   image_resize=image_resize)
 
     # Display a batch of training images
-    #imshow_batch(object_train_loader, batch_size=16)
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    imshow_batch(object_train_loader, batch_size=16)
 
     # run image classification on objects
     def train(model, optimizer, train_loader, val_loader, device, epochs=10):
 
         criterion = nn.CrossEntropyLoss()
 
-        out_dict = {'train_acc': [], 'val_acc':[], 'val_loss': [], 'val_loss':[]}
+        out_dict = {'train_acc': [], 'val_acc': [], 'val_loss': [], 'val_loss': []}
 
         best_val_acc = 0.0
 
@@ -133,6 +129,7 @@ def main():
         return out_dict, model
 
     # create model instance
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     num_classes = 2
     resnet18 = models.resnet18(pretrained=True)
     model = Pothole_RCNN(num_classes, resnet18).to(device)
@@ -141,10 +138,11 @@ def main():
     epochs = 20
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.0005)
 
-    #out_dict, model = train(model, optimizer, object_train_loader, object_test_loader, device, epochs=epochs)
-    #print(out_dict)
+    # out_dict, model = train(model, optimizer, object_train_loader, object_test_loader, device, epochs=epochs)
+    # print(out_dict)
 
     torch.save(model.state_dict(), 'rcnn_model.pth')
+
 
 if __name__ == "__main__":
     main()
