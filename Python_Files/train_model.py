@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from visualize import *
+from data_loader import *
 from generate_object_proposals import get_batch_selective_search_regions, evaluate_batch_object_proposals, prepare_proposals_images, prepare_proposals_database, generate_and_save_proposals
 from object_data_loader import load_and_transform_objects
 from torchsummary import summary
@@ -38,14 +39,14 @@ def main():
                                                                                                   image_resize=image_resize)
 
     # Display a batch of training images
-    imshow_batch(object_train_loader, batch_size=16)
+    #imshow_batch(object_train_loader, batch_size=16)
 
     # run image classification on objects
     def train(model, optimizer, train_loader, val_loader, device, epochs=10):
 
         criterion = nn.CrossEntropyLoss()
 
-        out_dict = {'train_acc': [], 'val_acc': [], 'val_loss': [], 'val_loss': []}
+        out_dict = {'train_acc': [], 'val_acc': [], 'train_loss': [], 'val_loss': []}
 
         best_val_acc = 0.0
 
@@ -113,7 +114,7 @@ def main():
                     all_labels.extend(labels.cpu().numpy())
 
                 val_loss = running_loss / len(val_loader.dataset)
-                val_acc = val_correct / train_total
+                val_acc = val_correct / val_total
                 out_dict['val_acc'].append(val_acc)
                 out_dict['val_loss'].append(val_loss)
 
@@ -135,11 +136,11 @@ def main():
     model = Pothole_RCNN(num_classes, resnet18).to(device)
 
     # hyperparameters
-    epochs = 20
+    epochs = 30
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.0005)
 
-    # out_dict, model = train(model, optimizer, object_train_loader, object_test_loader, device, epochs=epochs)
-    # print(out_dict)
+    out_dict, model = train(model, optimizer, object_train_loader, object_test_loader, device, epochs=epochs)
+    print(out_dict)
 
     torch.save(model.state_dict(), 'rcnn_model.pth')
 
