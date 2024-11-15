@@ -40,7 +40,7 @@ def prepare_labels(xml_path, out_path, max_objects):
 
         with open(out_path + "/" + filename[:-4] + ".pkl", 'wb') as fp:
             pickle.dump((torch.Tensor(out), len(objects), pic_size), fp)
-    print(max_objects)
+    #print(max_objects)
 
 
 
