@@ -8,7 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from visualize import *
-from generate_object_proposals import get_batch_selective_search_regions, evaluate_batch_object_proposals, prepare_proposals_images
+from generate_object_proposals import get_batch_selective_search_regions, evaluate_batch_object_proposals, \
+    prepare_proposals_images, prepare_proposals_database, generate_and_save_proposals
 from object_data_loader import load_and_transform_objects
 
 from torchsummary import summary
@@ -17,29 +18,33 @@ from torchviz import make_dot
 
 ##general parameters
 data_path = '../data/Potholes/'
-image_resize = 512
+image_resize = 128
 batch_size = 50
 IOU_th = 0.7
 ##load data
-trainset, valset, testset, train_loader, val_loader, test_loader = load_and_transform_dataset(val_size=0.05,
-                                                                                              batch_size=batch_size,
-                                                                                              image_resize=image_resize,
-                                                                                              data_path=data_path)
+#trainset, valset, testset, train_loader, val_loader, test_loader = load_and_transform_dataset(val_size=0.05,
+#                                                                                              batch_size=batch_size,
+#                                                                                              image_resize=image_resize,
+#                                                                                              data_path=data_path)
 
 # test loader
-images, (objects, num_objects) = next(iter(train_loader))
+#images, (objects, num_objects) = next(iter(train_loader))
 
-visualize_boxes(images, objects, num_objects)
+#visualize_boxes(images, objects, num_objects)
 
-batch_rects = get_batch_selective_search_regions(images)
-visualize_proposals(images, batch_rects, num_proposals=50)
-prepare_proposals_images()
+#batch_rects = get_batch_selective_search_regions(images)
+#visualize_proposals(images, batch_rects, num_proposals=50)
+#prepare_proposals_database()
+#prepare_proposals_images()
+
+# this takes a long time -> only re-run if changed
+# generate_and_save_proposals()
 
 object_trainset, object_testset, object_train_loader, object_test_loader = load_and_transform_objects(
                                                                                               batch_size=batch_size,
                                                                                               image_resize=image_resize)
 
 # Display a batch of training images
-imshow_batch(object_train_loader, image_resize, batch_size=16)
+imshow_batch(object_train_loader, batch_size=16)
 
 # run image classification on objects

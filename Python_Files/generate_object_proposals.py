@@ -143,95 +143,6 @@ def prepare_proposals_database(proposals_per_image=20, data_path='../data/Pothol
         with open(out_path + "/" + filename + "_proposals.pkl", 'wb') as fp:
             pickle.dump((torch.Tensor(output_proposals),torch.Tensor(output_labels)), fp)
 
-    # trainset = valset
-    # train_loader = val_loader
-    #
-    # for image_path in trainset.image_paths:
-    #     images, (objects, num_objects) = next(iter(train_loader))
-    #     proposals_per_object = np.floor(proposals_per_image / (2*num_objects))
-    #     proposals_list = []
-    #     proposals = get_batch_selective_search_regions(images)[0]
-    #     groundtruth = objects[0, :num_objects[0]]
-    #
-    #     IOU_list = np.zeros((len(groundtruth),max_proposals,2))
-    #     for j, proposal in enumerate(proposals):
-    #         if j == max_proposals:
-    #             break
-    #         xyxy_proposal = [proposal[0], proposal[1], proposal[0] + proposal[2], proposal[1] + proposal[3]]
-    #         proposals_list.append(xyxy_proposal)
-    #         for i, rect_object in enumerate(groundtruth):
-    #             IOU_list[i,j,0] = IOU(rect_object, xyxy_proposal)
-    #             IOU_list[i, j,1] = j
-    #
-    #     max_iou = np.max(IOU_list[:,:,0],axis = 0).argsort()[::-1]
-    #     sorted_IOU = IOU_list[:,max_iou,:]
-    #
-    #     label_count = np.zeros(len(groundtruth)+1)
-    #     output_proposals = []
-    #     output_labels = []
-    #
-    #     for idx in range(max_proposals):
-    #         max_index = np.argmax(sorted_IOU[:,idx,0])
-    #         if sorted_IOU[max_index,idx,0] > 0.5 and label_count[max_index] < proposals_per_object:
-    #             output_proposals.append(proposals_list[int(sorted_IOU[max_index,idx,1])])
-    #             output_labels.append(1)
-    #             label_count[max_index] += 1
-    #         elif sorted_IOU[max_index,idx,0] <0.3 and np.mod(idx ,3) == 0 and label_count[-1]<5:
-    #             output_proposals.append(proposals_list[int(sorted_IOU[max_index,idx,1])])
-    #             output_labels.append(0)
-    #             label_count[-1] += 1
-    #
-    #
-    #     for i in range(int(proposals_per_image-np.sum(label_count))):
-    #         output_proposals.append(proposals_list[int(sorted_IOU[0,len(proposals)-max_proposals-1-i,1])])
-    #         output_labels.append(0)
-    #
-    #     filename = os.path.basename(image_path)[:-4]
-    #     out_directory = os.path.dirname(out_path + "/" + filename + "_proposals.pkl")
-    #     os.makedirs(out_directory, exist_ok=True)
-    #
-    #     with open(out_path + "/" + filename + "_proposals.pkl", 'wb') as fp:
-    #         pickle.dump((torch.Tensor(output_proposals),torch.Tensor(output_labels)), fp)
-
-    # trainset = testset
-    # train_loader = test_loader
-    #
-    # for image_path in trainset.image_paths:
-    #     images, (objects, num_objects) = next(iter(train_loader))
-    #     proposals_per_object = np.floor(proposals_per_image / (2*num_objects))
-    #     proposals_list = []
-    #     proposals = get_batch_selective_search_regions(images)[0]
-    #     groundtruth = objects[0, :num_objects[0]]
-    #
-    #     IOU_list = np.zeros((len(groundtruth),max_proposals,2))
-    #     for j, proposal in enumerate(proposals):
-    #         if j == max_proposals:
-    #             break
-    #         xyxy_proposal = [proposal[0], proposal[1], proposal[0] + proposal[2], proposal[1] + proposal[3]]
-    #         proposals_list.append(xyxy_proposal)
-    #         for i, rect_object in enumerate(groundtruth):
-    #             IOU_list[i,j,0] = IOU(rect_object, xyxy_proposal)
-    #             IOU_list[i, j,1] = j
-    #
-    #     max_iou = np.max(IOU_list[:,:,0],axis = 0).argsort()[::-1]
-    #     sorted_IOU = IOU_list[:,max_iou,:]
-    #
-    #     label_count = np.zeros(len(groundtruth)+1)
-    #     output_proposals = []
-    #     output_labels = []
-    #
-    #     for idx in range(max_proposals):
-    #         max_index = np.argmax(sorted_IOU[:,idx,0])
-    #         if sorted_IOU[max_index,idx,0] > 0.5 and label_count[max_index] < proposals_per_object:
-    #             output_proposals.append(proposals_list[int(sorted_IOU[max_index,idx,1])])
-    #             output_labels.append(1)
-    #             label_count[max_index] += 1
-    #         elif sorted_IOU[max_index,idx,0] <0.3 and np.mod(idx ,3) == 0 and label_count[-1]<5:
-    #             output_proposals.append(proposals_list[int(sorted_IOU[max_index,idx,1])])
-    #             output_labels.append(0)
-    #             label_count[-1] += 1
-
-
         for i in range(int(proposals_per_image-np.sum(label_count))):
             output_proposals.append(proposals_list[int(sorted_IOU[0,len(proposals)-max_proposals-1-i,1])])
             output_labels.append(0)
@@ -336,3 +247,141 @@ def prepare_proposals_images(data_path='../data/Potholes/', out_path = '../data/
                     raise IOError(f"Failed to write image file.")
             except Exception as e:
                 continue
+
+
+def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potholes/', out_path='../data/Potholes/Proposals/'):
+    max_proposals = 2000
+
+    train_image_paths, train_label_paths, test_image_paths, test_label_paths = load_data_paths(data_path)
+
+    for dataset_type in ['train', 'test']:
+        if dataset_type == 'train':
+            image_paths = train_image_paths
+            label_paths = train_label_paths
+        else:
+            image_paths = test_image_paths
+            label_paths = test_label_paths
+
+        for index, image_path in enumerate(image_paths):
+            label_path = label_paths[index]
+
+            image = cv2.imread(image_path)
+            if image is None:
+                print(f"Error reading image {image_path}")
+                continue
+
+            with open(label_path, 'rb') as file:
+                objects, num_objects, _ = pickle.load(file)
+                groundtruth = objects[:num_objects]
+
+            image_tensor = torch.from_numpy(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)).permute(2, 0, 1).float() / 255.0
+
+            proposals = get_selective_search_regions(image_tensor)
+            if len(proposals) > max_proposals:
+                proposals = proposals[:max_proposals]
+
+            proposals_list = []
+            for proposal in proposals:
+                x, y, w, h = proposal
+                proposals_list.append([x, y, x + w, y + h])
+            proposals_list = np.array(proposals_list)
+
+            iou_matrix = compute_iou_matrix(groundtruth, proposals_list)
+
+            output_proposals, output_labels = select_proposals(
+                proposals_list,
+                iou_matrix,
+                proposals_per_image,
+                num_objects
+            )
+
+            save_proposal_images(
+                output_proposals,
+                output_labels,
+                image,
+                image_path,
+                dataset_type,
+                out_path
+            )
+
+def compute_iou_matrix(groundtruth, proposals):
+    iou_matrix = np.zeros((len(groundtruth), len(proposals)))
+    for i, gt in enumerate(groundtruth):
+        for j, prop in enumerate(proposals):
+            iou_matrix[i, j] = IOU(gt, prop)
+    return iou_matrix
+
+def select_proposals(proposals_list, iou_matrix, proposals_per_image, num_objects):
+    max_iou_per_proposal = np.max(iou_matrix, axis=0)
+    max_iou_indices = np.argmax(iou_matrix, axis=0)
+
+    sorted_indices = np.argsort(-max_iou_per_proposal)
+
+    label_count = np.zeros(num_objects + 1)
+    output_proposals = []
+    output_labels = []
+    proposals_per_object = np.floor(proposals_per_image / (2 * num_objects))
+    negatives_needed = 5
+    idx = 0
+
+    while len(output_proposals) < proposals_per_image and idx < len(sorted_indices):
+        i = sorted_indices[idx]
+        max_iou = max_iou_per_proposal[i]
+        obj_idx = max_iou_indices[i]
+        proposal = proposals_list[i]
+
+        if max_iou > 0.5 and label_count[obj_idx] < proposals_per_object:
+            output_proposals.append(proposal)
+            output_labels.append(1)
+            label_count[obj_idx] += 1
+        elif max_iou < 0.3 and label_count[-1] < negatives_needed:
+            output_proposals.append(proposal)
+            output_labels.append(0)
+            label_count[-1] += 1
+        idx += 1
+
+    # Add more negatives if needed
+    while len(output_proposals) < proposals_per_image and idx < len(sorted_indices):
+        i = sorted_indices[idx]
+        max_iou = max_iou_per_proposal[i]
+        proposal = proposals_list[i]
+
+        if max_iou < 0.3:
+            output_proposals.append(proposal)
+            output_labels.append(0)
+        idx += 1
+
+    return output_proposals, output_labels
+
+def save_proposal_images(proposals, labels, image, image_path, dataset_type, out_path):
+    for idx, proposal in enumerate(proposals):
+        x1 = int(np.floor(proposal[0]))
+        y1 = int(np.floor(proposal[1]))
+        x2 = int(np.floor(proposal[2]))
+        y2 = int(np.floor(proposal[3]))
+
+        x1, x2 = np.clip([x1, x2], 0, image.shape[1] - 1)
+        y1, y2 = np.clip([y1, y2], 0, image.shape[0] - 1)
+
+        if x2 <= x1 or y2 <= y1:
+            continue
+
+        proposal_image = image[y1:y2, x1:x2]
+
+        label = 'Potholes' if labels[idx] == 1 else 'NotPotholes'
+        out_dir = os.path.join(out_path, dataset_type, label)
+        os.makedirs(out_dir, exist_ok=True)
+
+        filename = f"{os.path.splitext(os.path.basename(image_path))[0]}_proposal_{idx}.jpg"
+        out_file = os.path.join(out_dir, filename)
+
+        if proposal_image.size == 0:
+            continue
+
+        try:
+            success = cv2.imwrite(out_file, proposal_image)
+            if not success:
+                raise IOError(f"Failed to write image file: {out_file}")
+        except Exception as e:
+            print(f"Error saving image {out_file}: {e}")
+            continue
