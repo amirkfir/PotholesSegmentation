@@ -35,7 +35,7 @@ model.load_state_dict(torch.load('rcnn_model.pth'))
 
 results = get_classification_results(model, object_test_loader_extended, device)
 
-print(results)
+# print(results)
 
 
 
