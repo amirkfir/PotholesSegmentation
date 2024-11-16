@@ -4,6 +4,7 @@ import os
 import pickle
 import torch
 # from jupyterlab.semver import test_set
+from tqdm import tqdm
 
 from data_loader import load_and_transform_dataset, load_data_paths, Potholes
 from pandas.core.computation.expr import intersection
@@ -262,7 +263,7 @@ def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potho
             image_paths = test_image_paths
             label_paths = test_label_paths
 
-        for index, image_path in enumerate(image_paths):
+        for index, image_path in enumerate(tqdm(image_paths)):
             label_path = label_paths[index]
 
             image = cv2.imread(image_path)
@@ -308,8 +309,8 @@ def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potho
                 output_proposals,
                 image,
                 image_path,
-                groundtruth,
                 dataset_type,
+                groundtruth,
                 out_path
             )
 
@@ -417,7 +418,9 @@ def save_detection_data(proposals, image, image_path, dataset_type, groundtruth,
     data_container["groundtruth"] = groundtruth
     data_container["proposals"] = proposal_container
 
-    out_dir = os.path.join(out_path, dataset_type+'_detection')
+    subdir = dataset_type+"_detection"
+
+    out_dir = os.path.join(out_path, subdir)
     os.makedirs(out_dir, exist_ok=True)
 
     filename = f"{os.path.splitext(os.path.basename(image_path))[0]}_detection_data.pkl"
