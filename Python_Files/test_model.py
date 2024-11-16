@@ -20,7 +20,9 @@ batch_size = 50
 
 object_trainset, object_testset, object_testset_extended, object_train_loader, object_test_loader, object_test_loader_extended = load_and_transform_objects(
                                                                                                   batch_size=batch_size,
-                                                                                                  image_resize=image_resize)
+                                                                                                  image_resize=image_resize,
+                                                                                                  data_path = '../data/Potholes/Proposals_test/',
+                                                                                                  only_test=True)
 
 # create model instance
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -30,16 +32,9 @@ model = Pothole_RCNN(num_classes, resnet18).to(device)
 
 model.load_state_dict(torch.load('rcnn_model.pth'))
 
-
-# test_loader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=3)
-
 results = get_classification_results(model, object_test_loader_extended, device)
 
 # print(results)
-
-
-
-
 
 
 

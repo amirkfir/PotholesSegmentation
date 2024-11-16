@@ -15,11 +15,11 @@ from generate_object_proposals import generate_and_save_proposals
 image_resize = 128
 batch_size = 1
 
-object_trainset, object_testset, object_testset_extended, object_train_loader, object_test_loader, object_test_loader_extended = load_and_transform_objects(
-                                                                                                  batch_size=batch_size,
-                                                                                                  image_resize=image_resize)
+# object_trainset, object_testset, object_testset_extended, object_train_loader, object_test_loader, object_test_loader_extended = load_and_transform_objects(
+#                                                                                                   batch_size=batch_size,
+#                                                                                                   image_resize=image_resize)
 
-generate_and_save_proposals(out_path_bboxes='../data/Potholes/Proposals_test', subsets_to_prepare=['test'])
+generate_and_save_proposals(out_path='../data/Potholes/Proposals_test', subsets_to_prepare=['test'])
 
 
 # for images, labels in object_test_loader:
