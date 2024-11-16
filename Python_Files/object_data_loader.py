@@ -55,8 +55,8 @@ class PathExtendedDataset(Dataset):
         return x, y, image_path
 
 
-def load_and_transform_objects(batch_size, image_resize):
-    data_path = '../data/Potholes/Proposals/'
+def load_and_transform_objects(batch_size, image_resize, data_path = '../data/Potholes/Proposals/', only_test=False):
+    # data_path = '../data/Potholes/Proposals/'
 
     target_size = (image_resize, image_resize)
     random_state = 42
@@ -74,11 +74,14 @@ def load_and_transform_objects(batch_size, image_resize):
 
     classes_order = ["Potholes", "NotPotholes"]
 
-    train_set = CustomImageFolder(
-        root=os.path.join(data_path, 'train'),
-        classes_order=classes_order,
-        transform=train_transforms
-    )
+    if not only_test:
+        train_set = CustomImageFolder(
+            root=os.path.join(data_path, 'train'),
+            classes_order=classes_order,
+            transform=train_transforms
+        )
+    else:
+        train_set = None
 
     test_set = CustomImageFolder(
         root=os.path.join(data_path, 'test'),
@@ -91,13 +94,16 @@ def load_and_transform_objects(batch_size, image_resize):
         transform=test_transforms, 
         data_path=data_path)
 
-    train_loader = DataLoader(
-        train_set,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=4,
-        pin_memory=True
-    )
+    if not only_test:
+        train_loader = DataLoader(
+            train_set,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=4,
+            pin_memory=True
+        )
+    else:
+        train_loader = None
 
     test_loader = DataLoader(
         test_set,
