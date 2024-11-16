@@ -9,6 +9,7 @@ from model import Pothole_RCNN
 import torch.nn as nn
 import torchvision.models as models
 import torch
+from tqdm import trange
 
 def main():
     ##general parameters
@@ -50,7 +51,7 @@ def main():
 
         best_val_acc = 0.0
 
-        for epoch in range(epochs):
+        for epoch in trange(epochs):
             model.train()
             print(f"Epoch {epoch + 1}/{epochs}")
 
@@ -63,7 +64,7 @@ def main():
             for images, labels in train_loader:
                 images, labels = images.to(device), labels.to(device)
 
-                print("Train labels:", labels)
+                # print("Train labels:", labels)
 
                 outputs = model(images)
                 loss = criterion(outputs, labels)
@@ -99,7 +100,7 @@ def main():
                 for images, labels in val_loader:
                     images, labels = images.to(device), labels.to(device)
 
-                    print("Validation labels:", labels)
+                    # print("Validation labels:", labels)
 
                     outputs = model(images)
                     loss = criterion(outputs, labels)

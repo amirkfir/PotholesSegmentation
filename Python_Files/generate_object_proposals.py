@@ -3,7 +3,7 @@ import numpy as np
 import os
 import pickle
 import torch
-from jupyterlab.semver import test_set
+# from jupyterlab.semver import test_set
 
 from data_loader import load_and_transform_dataset, load_data_paths, Potholes
 from pandas.core.computation.expr import intersection
