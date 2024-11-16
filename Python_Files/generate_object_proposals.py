@@ -249,12 +249,12 @@ def prepare_proposals_images(data_path='../data/Potholes/', out_path = '../data/
                 continue
 
 
-def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potholes/', out_path='../data/Potholes/Proposals/'):
+def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potholes/', out_path='../data/Potholes/Proposals/', out_path_bboxes='../data/Potholes/Proposals/bboxes.pkl', subsets_to_prepare=['train', 'test']):
     max_proposals = 2000
 
     train_image_paths, train_label_paths, test_image_paths, test_label_paths = load_data_paths(data_path)
 
-    for dataset_type in ['train', 'test']:
+    for dataset_type in subsets_to_prepare:
         if dataset_type == 'train':
             image_paths = train_image_paths
             label_paths = train_label_paths
@@ -385,3 +385,6 @@ def save_proposal_images(proposals, labels, image, image_path, dataset_type, out
         except Exception as e:
             print(f"Error saving image {out_file}: {e}")
             continue
+    
+    # with open(out_path_bboxes, "wb") as f:
+    #     pickle.dump(proposals_container, f)
