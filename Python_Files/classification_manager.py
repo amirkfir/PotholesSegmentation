@@ -1,36 +1,60 @@
 
 import torch
 import numpy as np
-from tqdm import trange
+from tqdm import tqdm
 
 
 def get_classification_results(model, dataloader, device):
 
     results = []
+    scores = {"correct": 0, "wrong": 0, "total": 0, "ratio": 0}
 
     model.eval()
     # Get a batch of images and labels from the dataloader
     # data_iter = iter(dataloader)
-    for images, labels in dataloader:
+    for images, labels in tqdm(dataloader):
         # Get a batch of images and labels from the dataloader
         # images, labels = next(data_iter)
         images = images.to(device)
         labels = labels.to(device)
-        for index in trange(images.shape[0]):
+        for index in range(images.shape[0]):
             image = images[index].unsqueeze(0)  # Add batch dimension
             label = labels[index]
             # Set requires_grad=True to calculate gradients w.r.t. the input image
             image.requires_grad = True
             # Forward pass
             output = model(image)
+
+            # print(f"output: {output.cpu().detach().numpy()}")
+
             # Get the predicted class
             probs = torch.sigmoid(output)
+
+            # print(f"probs: {probs.cpu().detach().numpy()}")
            # preds = (probs >= 0.5).float()
-            _, predicted =  (probs >= 0.5).float()
-            predicted = predicted[0]
+            # _, predicted =  (probs >= 0.5).float()
+            predicted =  (probs >= 0.5).float()
+
+            # print(f"predicted: {predicted.cpu().numpy()}")
+
+            predicted = predicted[0][1].cpu().numpy()
+            label = label.cpu().numpy()
+
+            # print(f"predicted: {predicted}")
+            # print(f"label: {label}")
 
             result_pair = [predicted, label]
+
+            if predicted != label:
+                scores["wrong"] += 1
+            else:
+                scores["correct"] += 1
+            scores["total"] += 1 
+
             results.append(result_pair)
+    
+    scores["ratio"] = scores["correct"] / scores["total"]
+    print(scores)
 
     return results
             # Check if prediction is incorrect
