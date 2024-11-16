@@ -1,6 +1,8 @@
 import os
+import glob
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
+from PIL import Image
 
 
 class CustomImageFolder(datasets.ImageFolder):
@@ -10,9 +12,10 @@ class CustomImageFolder(datasets.ImageFolder):
         original_class_to_idx = self.class_to_idx.copy()
 
         self.classes = classes_order
-        self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(self.classes)}
+        self.class_to_idx = {cls_name: idx for idx,
+                             cls_name in enumerate(self.classes)}
 
-        mapping = {original_class_to_idx[cls_name]: self.class_to_idx[cls_name] for cls_name in self.classes}
+        mapping = {original_class_to_idx[cls_name]                   : self.class_to_idx[cls_name] for cls_name in self.classes}
 
         new_samples = []
         for path, original_cls_idx in self.samples:
@@ -21,6 +24,37 @@ class CustomImageFolder(datasets.ImageFolder):
 
         self.samples = new_samples
         self.targets = [s[1] for s in self.samples]
+
+
+class PathExtendedDataset(Dataset):
+    def __init__(self, train, transform=None, data_path='./data/Proposals'):
+        'Initialization'
+        self.transform = transform
+
+        data_path = os.path.join(data_path, 'train' if train else 'test')
+        image_classes = [os.path.split(d)[1] for d in glob.glob(
+            data_path + '/*') if os.path.isdir(d)]
+        image_classes.sort()
+        self.name_to_label = {c: id for id, c in enumerate(image_classes)}
+        self.image_paths = glob.glob(data_path + '/*/*.jpg')
+
+    def __len__(self):
+        'Returns the total number of samples'
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        'Generates one sample of data'
+        image_path = self.image_paths[idx]
+
+        image = Image.open(image_path)
+        c = os.path.split(os.path.split(image_path)[0])[1]
+        y = self.name_to_label[c]
+
+        x = (image_path, self.transform(image) if self.transform else image)
+        # x[1] = self.transform(image) if self.transform else image
+        # x[0] = image_path
+        return x, y
+
 
 def load_and_transform_objects(batch_size, image_resize):
     data_path = '../data/Potholes/Proposals/'
@@ -53,12 +87,17 @@ def load_and_transform_objects(batch_size, image_resize):
         transform=test_transforms
     )
 
+    test_set_extended = PathExtendedDataset(
+        train=False, 
+        transform=test_transforms, 
+        data_path=data_path)
+
     train_loader = DataLoader(
         train_set,
         batch_size=batch_size,
         shuffle=True,
         num_workers=4,
-        pin_memory = True
+        pin_memory=True
     )
 
     test_loader = DataLoader(
@@ -69,4 +108,12 @@ def load_and_transform_objects(batch_size, image_resize):
         pin_memory=True
     )
 
-    return train_set, test_set, train_loader, test_loader
+    test_loader_extended = DataLoader(
+        test_set_extended,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True
+    )
+
+    return train_set, test_set, test_set_extended, train_loader, test_loader, test_loader_extended

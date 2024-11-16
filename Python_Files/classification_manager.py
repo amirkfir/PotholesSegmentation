@@ -17,7 +17,7 @@ def get_classification_results(model, dataloader, device):
         images = images.to(device)
         labels = labels.to(device)
         for index in trange(images.shape[0]):
-            image = images[index].unsqueeze(0)  # Add batch dimension
+            (path, image) = images[index].unsqueeze(0)  # Add batch dimension
             label = labels[index]
             # Set requires_grad=True to calculate gradients w.r.t. the input image
             image.requires_grad = True
@@ -29,8 +29,8 @@ def get_classification_results(model, dataloader, device):
             _, predicted =  (probs >= 0.5).float()
             predicted = predicted[0]
 
-            result_pair = [predicted, label]
-            results.append(result_pair)
+            result = [path, predicted, label]
+            results.append(result)
 
     return results
             # Check if prediction is incorrect
