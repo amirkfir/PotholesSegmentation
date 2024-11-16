@@ -34,10 +34,10 @@ model.load_state_dict(torch.load('rcnn_model.pth'))
 
 results = get_classification_results(model, object_test_loader_extended, device)
 
+with open("test_results.pkl", "wb") as f:
+    pickle.dump(results, f)
+
 # print(results)
-
-
-
 
 torch.cuda.empty_cache()
 
