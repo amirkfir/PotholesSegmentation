@@ -2,12 +2,19 @@
 import torch
 import numpy as np
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import os
 
 
 def get_classification_results(model, dataloader, device):
 
     results = []
     scores = {"correct": 0, "wrong": 0, "total": 0, "ratio": 0}
+
+    output_dir = "./test_imgs"
+    os.makedirs(output_dir, exist_ok=True)
+    saved_images_count = 0
+    max_images_to_save = 5
 
     model.eval()
     # Get a batch of images and labels from the dataloader
@@ -52,7 +59,22 @@ def get_classification_results(model, dataloader, device):
             scores["total"] += 1 
 
             results.append(result_pair)
-    
+
+            if saved_images_count < max_images_to_save:
+                img = image.squeeze().cpu().detach().numpy()
+                img = np.transpose(img, (1, 2, 0))
+
+                plt.figure(figsize=(6, 6))
+                plt.imshow(img)
+                plt.title(f'True Label: {label}, Predicted: {predicted}')
+                plt.axis('off')
+
+                output_path = os.path.join(output_dir, f"image_{saved_images_count + 1}.png")
+                plt.savefig(output_path, bbox_inches='tight')
+                plt.close()
+
+                saved_images_count += 1
+
     scores["ratio"] = scores["correct"] / scores["total"]
     print(scores)
 
