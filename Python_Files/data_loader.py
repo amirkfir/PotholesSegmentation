@@ -200,7 +200,9 @@ def load_and_transform_dataset(val_size, batch_size, image_resize,
 data_root = '../data/Potholes/'
 
 # prepare label dataset
-prepare_labels(data_root + "annotated-images", data_root + "objects_files", 19)
+
+
+# prepare_labels(data_root + "annotated-images", data_root + "objects_files", 19)
 
 # with open("/home/amir/Documents/Autonomous Systems Master/DLICV/object_detection/poster1/data/Potholes/Potholes/objects_files/img-399.pkl",'rb') as file:
 #     a = pickle.load(file)

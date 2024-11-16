@@ -17,7 +17,7 @@ def get_classification_results(model, dataloader, device):
         # images, labels = next(data_iter)
         images = images.to(device)
         labels = labels.to(device)
-        for index in trange(images.shape[0]):
+        for index in range(images.shape[0]):
             (path, image) = images[index].unsqueeze(0)  # Add batch dimension
             label = labels[index]
             # Set requires_grad=True to calculate gradients w.r.t. the input image
