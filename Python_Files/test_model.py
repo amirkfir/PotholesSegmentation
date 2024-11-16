@@ -18,7 +18,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 image_resize = 128
 batch_size = 50
 
-object_trainset, object_testset, object_train_loader, object_test_loader = load_and_transform_objects(
+object_trainset, object_testset, object_testset_extended, object_train_loader, object_test_loader, object_test_loader_extended = load_and_transform_objects(
                                                                                                   batch_size=batch_size,
                                                                                                   image_resize=image_resize)
 
@@ -33,7 +33,7 @@ model.load_state_dict(torch.load('rcnn_model.pth'))
 
 # test_loader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=3)
 
-results = get_classification_results(model, object_test_loader, device)
+results = get_classification_results(model, object_test_loader_extended, device)
 
 # print(results)
 
