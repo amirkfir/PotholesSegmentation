@@ -51,7 +51,7 @@ def get_classification_results(model, dataloader, device):
             # print(f"predicted: {predicted}")
             # print(f"label: {label}")
 
-            result = [predicted, label, path]
+            result = [predicted, label, probs, path]
 
             if predicted != label:
                 scores["wrong"] += 1
