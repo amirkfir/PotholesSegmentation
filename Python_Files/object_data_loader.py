@@ -3,6 +3,7 @@ import glob
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
+import numpy as np
 
 
 class CustomImageFolder(datasets.ImageFolder):
@@ -35,7 +36,7 @@ class PathExtendedDataset(Dataset):
         image_classes = [os.path.split(d)[1] for d in glob.glob(
             data_path + '/*') if os.path.isdir(d)]
         image_classes.sort()
-        self.name_to_label = {c: id for id, c in enumerate(image_classes)}
+        self.name_to_label = {c: 1 - id for id, c in enumerate(image_classes)}
         self.image_paths = glob.glob(data_path + '/*/*.jpg')
 
     def __len__(self):
@@ -49,11 +50,9 @@ class PathExtendedDataset(Dataset):
         image = Image.open(image_path)
         c = os.path.split(os.path.split(image_path)[0])[1]
         y = self.name_to_label[c]
+        x = self.transform(image) if self.transform else image
 
-        x = (image_path, self.transform(image) if self.transform else image)
-        # x[1] = self.transform(image) if self.transform else image
-        # x[0] = image_path
-        return x, y
+        return x, y, image_path
 
 
 def load_and_transform_objects(batch_size, image_resize):

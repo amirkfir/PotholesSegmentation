@@ -1,7 +1,7 @@
 
 import torch
 import numpy as np
-from tqdm import tqdm
+from tqdm import tqdm, trange
 import matplotlib.pyplot as plt
 import os
 
@@ -19,14 +19,15 @@ def get_classification_results(model, dataloader, device):
     model.eval()
     # Get a batch of images and labels from the dataloader
     # data_iter = iter(dataloader)
-    for images, labels in tqdm(dataloader):
+    for images, labels, paths in tqdm(dataloader):
         # Get a batch of images and labels from the dataloader
         # images, labels = next(data_iter)
         images = images.to(device)
         labels = labels.to(device)
-        for index in trange(images.shape[0]):
-            (path, image) = images[index].unsqueeze(0)  # Add batch dimension
+        for index in range(images.shape[0]):
+            image = images[index].unsqueeze(0)  # Add batch dimension
             label = labels[index]
+            path = paths[index]
             # Set requires_grad=True to calculate gradients w.r.t. the input image
             image.requires_grad = True
             # Forward pass
@@ -50,7 +51,7 @@ def get_classification_results(model, dataloader, device):
             # print(f"predicted: {predicted}")
             # print(f"label: {label}")
 
-            result_pair = [predicted, label]
+            result_pair = [predicted, label, path]
 
             if predicted != label:
                 scores["wrong"] += 1
