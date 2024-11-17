@@ -2,6 +2,39 @@ import os
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
+import torch
+
+import cv2
+import numpy as np
+from PIL import ImageOps, Image
+
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
+
+
+class HistogramEqualization(object):
+    def __call__(self, img):
+        return ImageOps.equalize(img)
+
+class CLAHE(object):
+    def __call__(self, img):
+        img_np = np.array(img)
+        lab = cv2.cvtColor(img_np, cv2.COLOR_RGB2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        cl = clahe.apply(l)
+        lab = cv2.merge((cl,a,b))
+        img_eq = cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
+        return Image.fromarray(img_eq)
+
+class GaussianNoise:
+    def __init__(self, mean=0.0, std=1.0):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, tensor):
+        noise = torch.randn(tensor.size()) * self.std + self.mean
+        return tensor + noise
 
 class CustomImageFolder(datasets.ImageFolder):
     def __init__(self, root, classes_order, transform=None):
@@ -22,21 +55,61 @@ class CustomImageFolder(datasets.ImageFolder):
         self.samples = new_samples
         self.targets = [s[1] for s in self.samples]
 
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, index):
+        img_path, label = self.samples[index]
+        image = np.array(Image.open(img_path).convert("RGB"))
+
+        if self.transform:
+            # Albumentations expects image in NumPy format
+            augmented = self.transform(image=image)
+            image = augmented['image']
+        else:
+            # Convert to tensor if no transform is provided
+            image = torch.tensor(image).permute(2, 0, 1)
+
+        return image, label
+
 def load_and_transform_objects(batch_size, image_resize):
     data_path = '../data/Potholes/Proposals/'
 
     target_size = (image_resize, image_resize)
+    gaussian_blur_kernel_size = 5
+    color_jitter_brightness = 0.3
+    color_jitter_contrast = 0.3
+    color_jitter_saturation = 0.1
+    color_jitter_hue = 0.15
     random_state = 42
 
-    train_transforms = transforms.Compose([
-        transforms.Resize(target_size),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor()
+    #ImageNet values
+    #mean = [0.485, 0.456, 0.406]
+    #std = [0.229, 0.224, 0.225]
+
+    #Our train set values
+    mean = [0.5090, 0.4893, 0.4666]
+    std = [0.1386, 0.1351, 0.1310]
+
+    train_transforms = A.Compose([
+        A.Resize(height=target_size[0], width=target_size[1]),
+        A.HorizontalFlip(p=0.5),
+        A.VerticalFlip(p=0.5),
+        #A.RandomBrightnessContrast(brightness_limit=0.5, contrast_limit=0.5, p=0.5),
+        A.ColorJitter(
+            brightness=0.3, contrast=0.3, saturation=0.2, hue=0.1, p=0.5
+        ),
+        #A.RandomGamma(gamma_limit=(80, 120), p=0.5),
+        #A.GaussianBlur(blur_limit=(3, 7), p=0.5),
+        A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
+        A.Normalize(mean=mean, std=std),
+        ToTensorV2(),
     ])
 
-    test_transforms = transforms.Compose([
-        transforms.Resize(target_size),
-        transforms.ToTensor()
+    test_transforms = A.Compose([
+        A.Resize(height=target_size[0], width=target_size[1]),
+        A.Normalize(mean=mean, std=std),
+        ToTensorV2(),
     ])
 
     classes_order = ["Potholes", "NotPotholes"]
@@ -57,7 +130,7 @@ def load_and_transform_objects(batch_size, image_resize):
         train_set,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=4,
+        num_workers=6,
         pin_memory = True
     )
 
@@ -65,7 +138,7 @@ def load_and_transform_objects(batch_size, image_resize):
         test_set,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=4,
+        num_workers=6,
         pin_memory=True
     )
 
