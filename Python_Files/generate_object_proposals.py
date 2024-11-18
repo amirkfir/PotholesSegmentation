@@ -3,7 +3,8 @@ import numpy as np
 import os
 import pickle
 import torch
-from jupyterlab.semver import test_set
+# from jupyterlab.semver import test_set
+from tqdm import tqdm
 
 from data_loader import load_and_transform_dataset, load_data_paths, Potholes
 from pandas.core.computation.expr import intersection
@@ -249,20 +250,22 @@ def prepare_proposals_images(data_path='../data/Potholes/', out_path = '../data/
                 continue
 
 
-def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potholes/', out_path='../data/Potholes/Proposals/'):
+def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potholes/', out_path='../data/Potholes/Proposals/', subsets_to_prepare=['train', 'test']):
     max_proposals = 2000
 
     train_image_paths, train_label_paths, test_image_paths, test_label_paths = load_data_paths(data_path)
 
-    for dataset_type in ['train', 'test']:
+    for dataset_type in subsets_to_prepare:
         if dataset_type == 'train':
             image_paths = train_image_paths
             label_paths = train_label_paths
+            unbiased_proposals = False
         else:
             image_paths = test_image_paths
             label_paths = test_label_paths
+            unbiased_proposals = True
 
-        for index, image_path in enumerate(image_paths):
+        for index, image_path in enumerate(tqdm(image_paths)):
             label_path = label_paths[index]
 
             image = cv2.imread(image_path)
@@ -292,7 +295,8 @@ def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potho
                 proposals_list,
                 iou_matrix,
                 proposals_per_image,
-                num_objects
+                num_objects,
+                unbiased_proposals
             )
 
             save_proposal_images(
@@ -304,6 +308,15 @@ def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potho
                 out_path
             )
 
+            save_detection_data(
+                output_proposals,
+                image,
+                image_path,
+                dataset_type,
+                groundtruth,
+                out_path
+            )
+
 def compute_iou_matrix(groundtruth, proposals):
     iou_matrix = np.zeros((len(groundtruth), len(proposals)))
     for i, gt in enumerate(groundtruth):
@@ -311,7 +324,7 @@ def compute_iou_matrix(groundtruth, proposals):
             iou_matrix[i, j] = IOU(gt, prop)
     return iou_matrix
 
-def select_proposals(proposals_list, iou_matrix, proposals_per_image, num_objects):
+def select_proposals(proposals_list, iou_matrix, proposals_per_image, num_objects, unbiased):
     max_iou_per_proposal = np.max(iou_matrix, axis=0)
     max_iou_indices = np.argmax(iou_matrix, axis=0)
 
@@ -324,32 +337,49 @@ def select_proposals(proposals_list, iou_matrix, proposals_per_image, num_object
     negatives_needed = 5
     idx = 0
 
-    while len(output_proposals) < proposals_per_image and idx < len(sorted_indices):
-        i = sorted_indices[idx]
-        max_iou = max_iou_per_proposal[i]
-        obj_idx = max_iou_indices[i]
-        proposal = proposals_list[i]
+    if unbiased:
+        while len(output_proposals) < proposals_per_image and idx < len(max_iou_per_proposal):
+            i = idx
+            max_iou = max_iou_per_proposal[i]
+            obj_idx = max_iou_indices[i]
+            proposal = proposals_list[i]
 
-        if max_iou > 0.5 and label_count[obj_idx] < proposals_per_object:
-            output_proposals.append(proposal)
-            output_labels.append(1)
-            label_count[obj_idx] += 1
-        elif max_iou < 0.3 and label_count[-1] < negatives_needed:
-            output_proposals.append(proposal)
-            output_labels.append(0)
-            label_count[-1] += 1
-        idx += 1
+            if max_iou > 0.5 and label_count[obj_idx] < proposals_per_object:
+                output_proposals.append(proposal)
+                output_labels.append(1)
+                label_count[obj_idx] += 1
+            elif max_iou < 0.3 and label_count[-1] < negatives_needed:
+                output_proposals.append(proposal)
+                output_labels.append(0)
+                label_count[-1] += 1
+            idx += 1
+    else:
+        while len(output_proposals) < proposals_per_image and idx < len(sorted_indices):
+            i = sorted_indices[idx]
+            max_iou = max_iou_per_proposal[i]
+            obj_idx = max_iou_indices[i]
+            proposal = proposals_list[i]
 
-    # Add more negatives if needed
-    while len(output_proposals) < proposals_per_image and idx < len(sorted_indices):
-        i = sorted_indices[idx]
-        max_iou = max_iou_per_proposal[i]
-        proposal = proposals_list[i]
+            if max_iou > 0.5 and label_count[obj_idx] < proposals_per_object:
+                output_proposals.append(proposal)
+                output_labels.append(1)
+                label_count[obj_idx] += 1
+            elif max_iou < 0.3 and label_count[-1] < negatives_needed:
+                output_proposals.append(proposal)
+                output_labels.append(0)
+                label_count[-1] += 1
+            idx += 1
 
-        if max_iou < 0.3:
-            output_proposals.append(proposal)
-            output_labels.append(0)
-        idx += 1
+        # Add more negatives if needed
+        while len(output_proposals) < proposals_per_image and idx < len(sorted_indices):
+            i = sorted_indices[idx]
+            max_iou = max_iou_per_proposal[i]
+            proposal = proposals_list[i]
+
+            if max_iou < 0.3:
+                output_proposals.append(proposal)
+                output_labels.append(0)
+            idx += 1
 
     return output_proposals, output_labels
 
@@ -385,3 +415,36 @@ def save_proposal_images(proposals, labels, image, image_path, dataset_type, out
         except Exception as e:
             print(f"Error saving image {out_file}: {e}")
             continue
+
+def save_detection_data(proposals, image, image_path, dataset_type, groundtruth, out_path):
+    data_container = {}
+    proposal_container = []
+    for idx, proposal in enumerate(proposals):
+        x1 = int(np.floor(proposal[0]))
+        y1 = int(np.floor(proposal[1]))
+        x2 = int(np.floor(proposal[2]))
+        y2 = int(np.floor(proposal[3]))
+
+        x1, x2 = np.clip([x1, x2], 0, image.shape[1] - 1)
+        y1, y2 = np.clip([y1, y2], 0, image.shape[0] - 1)
+
+        if x2 <= x1 or y2 <= y1:
+            continue
+
+        proposal_img_filename = f"{os.path.splitext(os.path.basename(image_path))[0]}_proposal_{idx}.jpg"
+
+        proposal_container.append([proposal_img_filename, proposal])
+    
+    data_container["groundtruth"] = groundtruth
+    data_container["proposals"] = proposal_container
+
+    subdir = dataset_type+"_detection"
+
+    out_dir = os.path.join(out_path, subdir)
+    os.makedirs(out_dir, exist_ok=True)
+
+    filename = f"{os.path.splitext(os.path.basename(image_path))[0]}_detection_data.pkl"
+
+    out_file = os.path.join(out_dir, filename)
+    with open(out_file, "wb") as f:
+        pickle.dump(data_container, f)
