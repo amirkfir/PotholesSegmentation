@@ -13,7 +13,8 @@ from tqdm import trange
 
 def main():
     ##general parameters
-    data_path = '../data/Potholes/'
+    # data_path = '../data/Potholes/'
+    data_path = '../data/Potholes/Proposals_test_unbiased/'
     image_resize = 128
     batch_size = 50
     IOU_th = 0.7
@@ -35,7 +36,7 @@ def main():
     # this takes a long time -> only re-run if changed
     #generate_and_save_proposals()
 
-    object_trainset, object_testset, object_train_loader, object_test_loader = load_and_transform_objects(
+    object_trainset, object_testset, object_testset_extended, object_train_loader, object_test_loader, object_test_loader_extended = load_and_transform_objects(
                                                                                                   batch_size=batch_size,
                                                                                                   image_resize=image_resize)
 
@@ -143,7 +144,7 @@ def main():
     out_dict, model = train(model, optimizer, object_train_loader, object_test_loader, device, epochs=epochs)
     print(out_dict)
 
-    torch.save(model.state_dict(), 'rcnn_model.pth')
+    torch.save(model.state_dict(), 'resnet_18_extended_aug_without_test_bias.pth')
 
 
 if __name__ == "__main__":

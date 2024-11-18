@@ -1,7 +1,7 @@
 import os
 import glob
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 import torch
 
@@ -192,4 +192,4 @@ def load_and_transform_objects(batch_size, image_resize, data_path = '../data/Po
         pin_memory=True
     )
 
-    return train_set, test_set, train_loader, test_loader
+    return train_set, test_set, test_set_extended, train_loader, test_loader, test_loader_extended
