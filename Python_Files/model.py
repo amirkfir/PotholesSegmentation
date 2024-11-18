@@ -7,7 +7,8 @@ class Pothole_RCNN(nn.Module):
         self.pretrained = nn.Sequential(*list(backbone.children())[:-2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
-        self.classification = nn.Sequential(nn.Flatten(), nn.Linear(512, num_classes))
+        # self.classification = nn.Sequential(nn.Flatten(), nn.Linear(512, num_classes))
+        self.classification = nn.Sequential(nn.Flatten(), nn.Linear(2048, num_classes))
 
     def forward(self, x):
 
