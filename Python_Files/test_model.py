@@ -30,14 +30,14 @@ object_trainset, object_testset, object_testset_extended, object_train_loader, o
 # create model instance
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 num_classes = 2
-resnet18 = models.resnet18(pretrained=True)
+resnet18 = models.resnet50(pretrained=True)
 model = Pothole_RCNN(num_classes, resnet18).to(device)
 
-model.load_state_dict(torch.load('resnet_18_extended_aug_without_test_bias.pth'))
+model.load_state_dict(torch.load('resnet_50_extended_aug_without_test_bias.pth'))
 
 results = get_classification_results(model, object_test_loader_extended, device)
 
-with open(f"{dataset_name}_results_retrained.pkl", "wb") as f:
+with open(f"{dataset_name}_results_resnet50.pkl", "wb") as f:
     pickle.dump(results, f)
 
 # print(results)
