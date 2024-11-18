@@ -134,7 +134,7 @@ def main():
     # create model instance
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     num_classes = 2
-    resnet18 = models.resnet18(pretrained=True)
+    resnet18 = models.resnet50(pretrained=True)
     model = Pothole_RCNN(num_classes, resnet18).to(device)
 
     # hyperparameters
@@ -144,7 +144,7 @@ def main():
     out_dict, model = train(model, optimizer, object_train_loader, object_test_loader, device, epochs=epochs)
     print(out_dict)
 
-    torch.save(model.state_dict(), 'resnet_18_extended_aug_without_test_bias.pth')
+    torch.save(model.state_dict(), 'resnet_50_extended_aug_without_test_bias.pth')
 
 
 if __name__ == "__main__":
