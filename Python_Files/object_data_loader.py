@@ -93,14 +93,22 @@ class PathExtendedDataset(Dataset):
 
     def __getitem__(self, idx):
         'Generates one sample of data'
-        image_path = self.image_paths[idx]
+        img_path = self.image_paths[idx]
+        image = np.array(Image.open(img_path).convert("RGB"))
 
-        image = Image.open(image_path)
-        c = os.path.split(os.path.split(image_path)[0])[1]
-        y = self.name_to_label[c]
-        x = self.transform(image) if self.transform else image
+        # image = Image.open(img_path)
+        c = os.path.split(os.path.split(img_path)[0])[1]
+        label = self.name_to_label[c]
 
-        return x, y, image_path
+        if self.transform:
+            # Albumentations expects image in NumPy format
+            augmented = self.transform(image=image)
+            image = augmented['image']
+        else:
+            # Convert to tensor if no transform is provided
+            image = torch.tensor(image).permute(2, 0, 1)
+
+        return image, label, img_path
 
 
 def load_and_transform_objects(batch_size, image_resize, data_path = '../data/Potholes/Proposals/', only_test=False):
