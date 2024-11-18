@@ -47,6 +47,7 @@ def get_classification_results(model, dataloader, device):
 
             predicted = predicted[0][1].cpu().numpy()
             label = label.cpu().numpy()
+            probs = probs.cpu().detach().numpy()
 
             # print(f"predicted: {predicted}")
             # print(f"label: {label}")
