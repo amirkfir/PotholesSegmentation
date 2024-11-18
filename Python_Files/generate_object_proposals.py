@@ -259,9 +259,11 @@ def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potho
         if dataset_type == 'train':
             image_paths = train_image_paths
             label_paths = train_label_paths
+            unbiased_proposals = False
         else:
             image_paths = test_image_paths
             label_paths = test_label_paths
+            unbiased_proposals = True
 
         for index, image_path in enumerate(tqdm(image_paths)):
             label_path = label_paths[index]
@@ -293,7 +295,8 @@ def generate_and_save_proposals(proposals_per_image=20, data_path='../data/Potho
                 proposals_list,
                 iou_matrix,
                 proposals_per_image,
-                num_objects
+                num_objects,
+                unbiased_proposals
             )
 
             save_proposal_images(
@@ -321,7 +324,7 @@ def compute_iou_matrix(groundtruth, proposals):
             iou_matrix[i, j] = IOU(gt, prop)
     return iou_matrix
 
-def select_proposals(proposals_list, iou_matrix, proposals_per_image, num_objects):
+def select_proposals(proposals_list, iou_matrix, proposals_per_image, num_objects, unbiased):
     max_iou_per_proposal = np.max(iou_matrix, axis=0)
     max_iou_indices = np.argmax(iou_matrix, axis=0)
 
@@ -334,32 +337,49 @@ def select_proposals(proposals_list, iou_matrix, proposals_per_image, num_object
     negatives_needed = 5
     idx = 0
 
-    while len(output_proposals) < proposals_per_image and idx < len(sorted_indices):
-        i = sorted_indices[idx]
-        max_iou = max_iou_per_proposal[i]
-        obj_idx = max_iou_indices[i]
-        proposal = proposals_list[i]
+    if unbiased:
+        while len(output_proposals) < proposals_per_image and idx < len(max_iou_per_proposal):
+            i = idx
+            max_iou = max_iou_per_proposal[i]
+            obj_idx = max_iou_indices[i]
+            proposal = proposals_list[i]
 
-        if max_iou > 0.5 and label_count[obj_idx] < proposals_per_object:
-            output_proposals.append(proposal)
-            output_labels.append(1)
-            label_count[obj_idx] += 1
-        elif max_iou < 0.3 and label_count[-1] < negatives_needed:
-            output_proposals.append(proposal)
-            output_labels.append(0)
-            label_count[-1] += 1
-        idx += 1
+            if max_iou > 0.5 and label_count[obj_idx] < proposals_per_object:
+                output_proposals.append(proposal)
+                output_labels.append(1)
+                label_count[obj_idx] += 1
+            elif max_iou < 0.3 and label_count[-1] < negatives_needed:
+                output_proposals.append(proposal)
+                output_labels.append(0)
+                label_count[-1] += 1
+            idx += 1
+    else:
+        while len(output_proposals) < proposals_per_image and idx < len(sorted_indices):
+            i = sorted_indices[idx]
+            max_iou = max_iou_per_proposal[i]
+            obj_idx = max_iou_indices[i]
+            proposal = proposals_list[i]
 
-    # Add more negatives if needed
-    while len(output_proposals) < proposals_per_image and idx < len(sorted_indices):
-        i = sorted_indices[idx]
-        max_iou = max_iou_per_proposal[i]
-        proposal = proposals_list[i]
+            if max_iou > 0.5 and label_count[obj_idx] < proposals_per_object:
+                output_proposals.append(proposal)
+                output_labels.append(1)
+                label_count[obj_idx] += 1
+            elif max_iou < 0.3 and label_count[-1] < negatives_needed:
+                output_proposals.append(proposal)
+                output_labels.append(0)
+                label_count[-1] += 1
+            idx += 1
 
-        if max_iou < 0.3:
-            output_proposals.append(proposal)
-            output_labels.append(0)
-        idx += 1
+        # Add more negatives if needed
+        while len(output_proposals) < proposals_per_image and idx < len(sorted_indices):
+            i = sorted_indices[idx]
+            max_iou = max_iou_per_proposal[i]
+            proposal = proposals_list[i]
+
+            if max_iou < 0.3:
+                output_proposals.append(proposal)
+                output_labels.append(0)
+            idx += 1
 
     return output_proposals, output_labels
 
