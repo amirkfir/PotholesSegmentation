@@ -1,5 +1,6 @@
 /data/Potholes/objects_files/
 /data/Potholes/Proposals_test/test
+/data/Potholes/Proposals_test_unbiased
 
 .idea
 */__pycache__/
