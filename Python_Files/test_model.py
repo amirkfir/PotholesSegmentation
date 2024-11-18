@@ -33,11 +33,11 @@ num_classes = 2
 resnet18 = models.resnet18(pretrained=True)
 model = Pothole_RCNN(num_classes, resnet18).to(device)
 
-model.load_state_dict(torch.load('rcnn_model.pth'))
+model.load_state_dict(torch.load('resnet_18_extended_aug_without_test_bias.pth'))
 
 results = get_classification_results(model, object_test_loader_extended, device)
 
-with open(f"{dataset_name}_results.pkl", "wb") as f:
+with open(f"{dataset_name}_results_retrained.pkl", "wb") as f:
     pickle.dump(results, f)
 
 # print(results)
